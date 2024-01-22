@@ -49,6 +49,25 @@ task runFraction(type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
 
   main = 'Fraction'
+
+  // default arguments if non are given
+  args '1'
+  args '3'
+}
+
+task runFrac(type: JavaExec){
+  group 'Fraction Tasks'
+  description 'Tasks which runs Fraction with default parameters or given values'
+
+  main = 'Fraction'
+
+  // only works if two arguments are provided
+  // Try: using default values in case non or only one parameter is provided
+  if (project.hasProperty("denom") && project.hasProperty("num")) {
+    args(project.getProperty('denom'), project.getProperty('denom'));
+  } else if (project.hasProperty("num")){
+    args(project.getProperty('num'), 1);
+  }
 }
 
 // Try:
