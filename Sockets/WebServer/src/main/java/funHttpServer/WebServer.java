@@ -262,33 +262,27 @@ class WebServer {
           }
         }
 
-        else if (request.contains("calculateage?")) {
-          Map<String, String> query_pairs = splitQuery(request.replace("calculateage?", ""));
+        else if (request.contains("distance?")) {
+          Map<String, String> query_pairs = splitQuery(request.replace("distance?", ""));
           try {
-            int birthYear = Integer.parseInt(query_pairs.get("birthyear"));
-            int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-            int age = currentYear - birthYear;
-
-            if (age < 0) {
-              throw new IllegalArgumentException("Birth year should be less than current year");
-            }
-
-            builder.append("HTTP/1.1 200 OK\n");
-            builder.append("Content-Type: text/plain; charset=utf-8\n");
-            builder.append("\n");
-            builder.append("Age: " + age + " years");
+              double lat1 = Double.parseDouble(query_pairs.get("lat1"));
+              double lon1 = Double.parseDouble(query_pairs.get("lon1"));
+              double lat2 = Double.parseDouble(query_pairs.get("lat2"));
+              double lon2 = Double.parseDouble(query_pairs.get("lon2"));
+      
+              double distance = calculateDistance(lat1, lon1, lat2, lon2);
+      
+              builder.append("HTTP/1.1 200 OK\n");
+              builder.append("Content-Type: text/plain; charset=utf-8\n");
+              builder.append("\n");
+              builder.append(String.format("Distance: %.2f km", distance));
           } catch (NumberFormatException | NullPointerException e) {
-            builder.append("HTTP/1.1 400 Bad Request\n");
-            builder.append("Content-Type: text/plain; charset=utf-8\n");
-            builder.append("\n");
-            builder.append("Invalid input: please provide a valid birth year");
-          } catch (IllegalArgumentException e) {
-            builder.append("HTTP/1.1 400 Bad Request\n");
-            builder.append("Content-Type: text/plain; charset=utf-8\n");
-            builder.append("\n");
-            builder.append(e.getMessage());
+              builder.append("HTTP/1.1 400 Bad Request\n");
+              builder.append("Content-Type: text/plain; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Invalid input: please provide valid latitude and longitude values");
           }
-        }
+      }
 
         else if (request.contains("github?")) {
           // pulls the query from the request and runs it with GitHub's REST API
@@ -381,6 +375,20 @@ class WebServer {
     // {{"q", "hello world/me"}, {"bob","5"}}
     return query_pairs;
   }
+
+  // Method to calculate the distance between two points
+  private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    final int R = 6371; // Radius of the earth in kilometers
+    double latDistance = Math.toRadians(lat2 - lat1);
+    double lonDistance = Math.toRadians(lon2 - lon1);
+    double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+            + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+            * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    double distance = R * c; // convert to kilometers
+
+    return distance;
+}
 
   /**
    * Builds an HTML file list from the www directory
