@@ -20,6 +20,7 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Map;
@@ -33,6 +34,7 @@ class WebServer {
 
   /**
    * Main thread
+   * 
    * @param port to listen on
    */
   public WebServer(int port) {
@@ -82,6 +84,7 @@ class WebServer {
 
   /**
    * Reads in socket stream and generates a response
+   * 
    * @param inStream HTTP input stream from socket
    * @return the byte encoded HTTP response
    */
@@ -186,7 +189,8 @@ class WebServer {
             builder.append("HTTP/1.1 200 OK\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
             builder.append("\n");
-            builder.append("Would theoretically be a file but removed this part, you do not have to do anything with it for the assignment");
+            builder.append(
+                "Would theoretically be a file but removed this part, you do not have to do anything with it for the assignment");
           } else { // failure
             builder.append("HTTP/1.1 404 Not Found\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
@@ -202,41 +206,140 @@ class WebServer {
           query_pairs = splitQuery(request.replace("multiply?", ""));
 
           // extract required fields from parameters
-          Integer num1 = Integer.parseInt(query_pairs.get("num1"));
-          Integer num2 = Integer.parseInt(query_pairs.get("num2"));
+          try {
+            Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+            Integer num2 = Integer.parseInt(query_pairs.get("num2"));
 
-          // do math
-          Integer result = num1 * num2;
+            // do math
+            Integer result = num1 * num2;
 
-          // Generate response
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Result is: " + result);
+            // Generate response
+            builder.append("HTTP/1.1 200 OK\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Result is: " + result);
 
-          // TODO: Include error handling here with a correct error code and
-          // a response that makes sense
+            // TODO: Include error handling here with a correct error code and
+            // a response that makes sense
+          } catch (NumberFormatException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Invalid input: please provide two integer numbers");
+          } catch (IllegalArgumentException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append(e.getMessage());
+          }
+        } else if (request.contains("calculatebmi?")) {
+          Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+          query_pairs = splitQuery(request.replace("calculatebmi?", ""));
+          try {
+            double weight = Double.parseDouble(query_pairs.get("weight"));
+            double height = Double.parseDouble(query_pairs.get("height"));
 
-        } else if (request.contains("github?")) {
+            if (weight <= 0 || height <= 0) {
+              throw new IllegalArgumentException("Weight and height must be positive numbers");
+            }
+
+            double bmi = weight / (height * height);
+
+            builder.append("HTTP/1.1 200 OK\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Your BMI is: " + String.format("%.2f", bmi));
+          } catch (NumberFormatException | NullPointerException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Invalid input: please provide valid weight and height");
+          } catch (IllegalArgumentException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append(e.getMessage());
+          }
+        }
+
+        else if (request.contains("calculateage?")) {
+          Map<String, String> query_pairs = splitQuery(request.replace("calculateage?", ""));
+          try {
+            int birthYear = Integer.parseInt(query_pairs.get("birthyear"));
+            int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+            int age = currentYear - birthYear;
+
+            if (age < 0) {
+              throw new IllegalArgumentException("Birth year should be less than current year");
+            }
+
+            builder.append("HTTP/1.1 200 OK\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Age: " + age + " years");
+          } catch (NumberFormatException | NullPointerException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Invalid input: please provide a valid birth year");
+          } catch (IllegalArgumentException e) {
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append(e.getMessage());
+          }
+        }
+
+        else if (request.contains("github?")) {
           // pulls the query from the request and runs it with GitHub's REST API
           // check out https://docs.github.com/rest/reference/
           //
           // HINT: REST is organized by nesting topics. Figure out the biggest one first,
-          //     then drill down to what you care about
-          // "Owner's repo is named RepoName. Example: find RepoName's contributors" translates to
-          //     "/repos/OWNERNAME/REPONAME/contributors"
+          // then drill down to what you care about
+          // "Owner's repo is named RepoName. Example: find RepoName's contributors"
+          // translates to
+          // "/repos/OWNERNAME/REPONAME/contributors"
 
           Map<String, String> query_pairs = new LinkedHashMap<String, String>();
           query_pairs = splitQuery(request.replace("github?", ""));
-          String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
-          System.out.println(json);
 
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Check the todos mentioned in the Java source file");
-          // TODO: Parse the JSON returned by your fetch and create an appropriate
-          // response based on what the assignment document asks for
+          try {
+            String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
+            System.out.println(json);
+
+            ArrayList<String> repoDetails = new ArrayList<>();
+            String[] repos = json.split("\\},\\{"); // Splitting each JSON object
+            for (String repo : repos) {
+              // Further splitting to get full_name and owner login
+              String[] details = repo.split(",");
+              String fullName = "";
+              String login = "";
+              for (String detail : details) {
+                if (detail.contains("\"full_name\":")) {
+                  fullName = detail.split(":")[1].trim().replace("\"", "");
+                } else if (detail.contains("\"login\":")) {
+                  login = detail.split(":")[1].trim().replace("\"", "");
+                  break; // Since login is a sub-object, we stop here
+                }
+              }
+              repoDetails.add("Repository: " + fullName + ", Owner: " + login);
+            }
+
+            // Construct the response body with the parsed repo details
+            StringBuilder responseBody = new StringBuilder();
+            for (String detail : repoDetails) {
+              responseBody.append(detail).append("\n");
+            }
+            builder.append("HTTP/1.1 200 OK\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append(responseBody.toString());
+          } catch (Exception e) {
+            builder.append("HTTP/1.1 500 Internal Server Error\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Error fetching or parsing GitHub data");
+          }
 
         } else {
           // if the request is not recognized at all
@@ -260,6 +363,7 @@ class WebServer {
 
   /**
    * Method to read in a query and split it up correctly
+   * 
    * @param query parameters on path
    * @return Map of all parameters and their specific values
    * @throws UnsupportedEncodingException If the URLs aren't encoded with UTF-8
@@ -280,6 +384,7 @@ class WebServer {
 
   /**
    * Builds an HTML file list from the www directory
+   * 
    * @return HTML string output of file list
    */
   public static String buildFileList() {
